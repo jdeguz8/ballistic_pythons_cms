@@ -5,19 +5,25 @@ session_start();
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username_or_email = trim($_POST['username_or_email']);
-    $password          = $_POST['password'];
+    $username_or_email = trim($_POST['username_or_email'] ?? '');
+    $password          = $_POST['password'] ?? '';
 
     if (empty($username_or_email) || empty($password)) {
         $errors[] = 'Please enter your username/email and password.';
     } else {
-        // Fetch user from database
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE username = :username_or_email OR email = :username_or_email');
-        $stmt->execute(['username_or_email' => $username_or_email]);
+        // Prepare the statement with separate placeholders
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE username = :username OR email = :email');
+
+        // Execute with both parameters
+        $stmt->execute([
+            'username' => $username_or_email,
+            'email'    => $username_or_email
+        ]);
+
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
-            // Password is correct, start a session
+            // Password is correct, set up session
             session_regenerate_id(true); // Prevent session fixation attacks
             $_SESSION['user_id']    = $user['user_id'];
             $_SESSION['username']   = $user['username'];
@@ -25,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['first_name'] = $user['first_name'];
             $_SESSION['last_name']  = $user['last_name'];
 
-            // Redirect to appropriate dashboard
+            // Redirect based on role
             if ($user['role'] === 'admin' || $user['role'] === 'staff') {
                 header('Location: admin/dashboard.php');
             } else {

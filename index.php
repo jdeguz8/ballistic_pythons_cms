@@ -3,7 +3,24 @@
 
 require_once 'includes/connect.php';
 
-// Fetch snakes from the database
+// Define how many results you want per page
+$results_per_page = 9;
+
+// Find out the number of results stored in database
+$stmt = $pdo->prepare('SELECT COUNT(*) FROM snakes WHERE availability_status = "available"');
+$stmt->execute();
+$number_of_results = $stmt->fetchColumn();
+
+// Determine number of total pages available
+$number_of_pages = ceil($number_of_results / $results_per_page);
+
+// Determine which page number visitor is currently on
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+
+// Determine the SQL LIMIT starting number
+$offset = ($page - 1) * $results_per_page;
+
+// Modify your main query to include LIMIT and OFFSET
 $stmt = $pdo->prepare('
   SELECT snakes.*, 
          morphs.name AS morph_name, 
@@ -16,9 +33,13 @@ $stmt = $pdo->prepare('
   WHERE snakes.availability_status = "available"
   GROUP BY snakes.snake_id
   ORDER BY snakes.date_added DESC
+  LIMIT :limit OFFSET :offset
 ');
+$stmt->bindValue(':limit', $results_per_page, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $snakes = $stmt->fetchAll();
+
 ?>
 
 <?php include 'templates/header.php'; ?>
@@ -61,6 +82,7 @@ $snakes = $stmt->fetchAll();
   </div>
 </div>
 
+
 <!-- Trait Description Modal -->
 <div class="modal fade" id="traitModal" tabindex="-1" role="dialog" aria-labelledby="traitModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
@@ -80,8 +102,6 @@ $snakes = $stmt->fetchAll();
 
 <?php include 'templates/footer.php'; ?>
 
-<!-- Include JavaScript files -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="assets/js/trait-handler.js"></script>
-<!-- Include Bootstrap JS if not already included -->
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
