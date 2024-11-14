@@ -40,6 +40,10 @@ if (session_status() === PHP_SESSION_NONE) {
                     <a class="nav-link" href="register.php">Register</a>
                 </li>
             <?php endif; ?>
+            <form class="form-inline my-2 my-lg-0" action="search.php" method="GET">
+        <input class="form-control mr-sm-2" type="search" name="q" placeholder="Search snakes" aria-label="Search" required>
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+    </form>
         </ul>
     </div>
 </nav>

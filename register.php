@@ -23,6 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Passwords do not match.';
     }
 
+    if (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/', $password)) {
+        $errors[] = 'Password must be at least 8 characters long and include at least one letter and one number.';
+    }
+    
+
     // Check if username or email already exists
     $stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE username = :username OR email = :email');
     $stmt->execute(['username' => $username, 'email' => $email]);

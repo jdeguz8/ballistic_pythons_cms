@@ -3,13 +3,11 @@ require_once '../includes/connect.php';
 require_once '../includes/auth.php';
 checkAdmin();
 
-// Fetch morphs and traits for the form
 $morphs = $pdo->query('SELECT * FROM morphs ORDER BY name ASC')->fetchAll();
 $traits = $pdo->query('SELECT * FROM traits ORDER BY name ASC')->fetchAll();
 
 $errors = [];
 
-// Initialize variables
 $name = '';
 $species = '';
 $morph_id = '';
@@ -21,7 +19,7 @@ $selected_traits = [];
 $image_url = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Collect and sanitize input
+    // Sanitize
     $name = trim($_POST['name'] ?? '');
     $species = trim($_POST['species'] ?? '');
     $morph_id = $_POST['morph_id'] ?? '';
@@ -50,6 +48,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($availability_status)) {
         $errors[] = 'Availability status is required.';
     }
+
+    if (empty($name)) {
+        $errors[] = 'Name is required.';
+    }
+    if (empty($price) || !is_numeric($price)) {
+        $errors[] = 'Valid price is required.';
+    }
+    
 
     // Handle image upload
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {

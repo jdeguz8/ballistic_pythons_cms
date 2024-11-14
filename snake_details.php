@@ -58,7 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
 }
 
 // Fetch comments for this snake
-// Fetch comments for this snake without checking comment_status
 $stmt = $pdo->prepare('
     SELECT comments.*, users.username
     FROM comments
