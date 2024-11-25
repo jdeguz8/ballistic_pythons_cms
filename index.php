@@ -1,5 +1,7 @@
 <?php
 require_once 'includes/connect.php';
+include 'templates/header.php'; 
+
 
 $results_per_page = 9;
 
@@ -32,12 +34,21 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $snakes = $stmt->fetchAll();
 
+
+
 ?>
 
-<?php include 'templates/header.php'; ?>
+
+
+
+<?php
+// Fetch morphs
+$stmt = $pdo->query('SELECT * FROM morphs ORDER BY name ASC');
+$morphs = $stmt->fetchAll();
+?>
 
 <div class="container mt-5">
-  <h1 class="mb-4">Available Snakes</h1>
+  <h1 class="mb-4">Available Snakes</h1>        
   <div class="row">
     <?php foreach ($snakes as $snake): 
       $image_url = !empty($snake['image_url']) ? htmlspecialchars($snake['image_url']) : 'assets/images/default_snake.jpg';
@@ -117,6 +128,3 @@ $snakes = $stmt->fetchAll();
 </div>
 
 <?php include 'templates/footer.php'; ?>
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="assets/js/trait-handler.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>

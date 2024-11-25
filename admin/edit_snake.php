@@ -113,9 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (in_array($file_type, $allowed_types)) {
 
 }
-
-    
-    
+       
     if (empty($errors)) {
         try {
             $pdo->beginTransaction();
@@ -183,6 +181,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $image_url = $snake['image_url'];
 }
 
+if (isset($_POST['remove_image']) && $_POST['remove_image'] == 'on') {
+    // Delete old image if exists
+    if ($snake['image_url'] && file_exists('../' . $snake['image_url'])) {
+        unlink('../' . $snake['image_url']);
+    }
+    $image_url = null; // Set image URL to null in the database
+}
+
 include '../templates/admin_header.php'; ?>
 
 <div class="container mt-5">
@@ -248,15 +254,17 @@ include '../templates/admin_header.php'; ?>
         </div>
         <!-- Image -->
         <div class="form-group">
-            <label for="image">Image:</label>
-            <?php if ($image_url): ?>
-                <div>
-                    <img src="../<?php echo htmlspecialchars($image_url); ?>" alt="Current Image" style="max-width: 200px;">
-                </div>
-            <?php endif; ?>
-            <input type="file" name="image" class="form-control-file">
-            <small>If you upload a new image, the old one will be replaced.</small>
+    <?php if ($snake['image_url']): ?>
+        <img src="../<?php echo htmlspecialchars($snake['image_url']); ?>" alt="Current Image" style="max-width: 200px;">
+        <div class="form-check">
+            <input type="checkbox" name="remove_image" class="form-check-input" id="remove_image">
+            <label for="remove_image" class="form-check-label">Remove current image</label>
         </div>
+    <?php endif; ?>
+    <label for="image">Upload New Image:</label>
+    <input type="file" name="image" class="form-control-file">
+</div>
+        
         <!-- Traits selection -->
         <div class="form-group">
             <label for="traits">Traits:</label>

@@ -1,12 +1,35 @@
 body {
-    padding-top: 56px;
-  }
-  
-  .card-img-top {
-    height: 200px;
-    object-fit: cover;
-  }
+  padding-top: 56px;
+}
 
-  .hidden {
-    display: none;
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Define the RyujinAttack font */
+@font-face {
+  font-family: 'RyujinAttack';
+  src: url('../fonts/RyujinAttack.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Apply the RyujinAttack font to the navbar brand */
+.navbar-brand {
+  font-family: 'RyujinAttack', sans-serif !important;
+}
+
+.breadcrumb-item.dropdown {
+  position: relative;
+}
+
+.breadcrumb-item .dropdown-menu {
+  top: 100%;
+  left: 0;
+  margin-top: 0;
 }

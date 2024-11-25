@@ -9,7 +9,8 @@
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand" href="dashboard.php">Admin Dashboard</a>
+<a class="nav-link" href="/ballistic_pythons_cms/index.php">Home</a>
+<a class="navbar-brand" href="dashboard.php">Admin Dashboard</a>
     <!-- Add admin navigation items here -->
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ml-auto">
