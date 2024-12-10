@@ -89,5 +89,9 @@ $snakes = $stmt->fetchAll();
     <button type="submit" class="btn btn-primary">Sort</button>
 </form>
 </div>
+<li class="nav-item">
+    <a class="nav-link" href="manage_comments.php">Manage Comments</a>
+</li>
+
 
 <?php include '../templates/admin_footer.php'; ?>

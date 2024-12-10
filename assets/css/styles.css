@@ -1,29 +1,84 @@
+/* General Body Styles */
 body {
   padding-top: 56px;
+  font-size: 16px; /* Default font size */
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family-base);
 }
 
-.card-img-top {
-  height: 200px;
-  object-fit: cover;
+/* CSS Variables */
+:root {
+  --primary-color: #C2D3CD;
+  --secondary-color: #AFBFC0;
+  --background-color: #f8f9fa;
+  --text-color: #847E89;
+  --font-family-base: 'Roboto', sans-serif;
 }
 
-.hidden {
-  display: none;
+
+
+/* Heading Styles */
+h1 {
+  font-family: 'Laisha', sans-serif !important;
+  font-size: 3.5rem;
+  color: var(--primary-color);
+  user-select: none;
 }
 
-/* Define the RyujinAttack font */
-@font-face {
-  font-family: 'RyujinAttack';
-  src: url('../fonts/RyujinAttack.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
+p {
+  font-size: 1rem; /* 16px */
+  line-height: 1.5; /* 24px */
 }
 
-/* Apply the RyujinAttack font to the navbar brand */
+/* Navbar Styles */
+.navbar {
+  background-color: var(--primary-color);
+  padding: 0.5rem 1rem;
+}
+
 .navbar-brand {
   font-family: 'RyujinAttack', sans-serif !important;
+  font-size: 2.2rem;
+  transform: translateX(-50%);
 }
 
+/* Mobile-First Design */
+@media (max-width: 767.98px) {
+  .navbar-brand {
+      transform: none; 
+      text-align: center;
+      margin: 0 auto;
+  }
+
+  .navbar-nav {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 0;
+  }
+
+  .navbar-toggler {
+      display: block;
+  }
+
+  .navbar-collapse {
+      text-align: center; 
+  }
+}
+
+@media (min-width: 768px) {
+  .navbar-nav {
+      display: flex; 
+      justify-content: flex-end;
+  }
+
+  .navbar-toggler {
+      display: none; 
+  }
+}
+
+/* Breadcrumbs */
 .breadcrumb-item.dropdown {
   position: relative;
 }
@@ -33,3 +88,347 @@ body {
   left: 0;
   margin-top: 0;
 }
+
+/* Cards */
+.card {
+  background-color: #fff;
+  border: 1px solid var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
+}
+
+.card-title {
+  color: var(--text-color);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+  color: #fff;
+}
+
+.btn-add-to-cart {
+  font-weight: bold; /* Optional additional styling */
+}
+
+/* Badge Styles */
+.badge-info {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+/* Footer */
+footer {
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  padding: 20px 0;
+  text-align: center;
+}
+
+/* Autocomplete List */
+#autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-top: none;
+}
+
+#autocomplete-list .list-group-item {
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+#autocomplete-list .list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Utilities */
+.hidden {
+  display: none;
+}
+
+/* Containers */
+.container {
+  padding: 0 15px;
+  max-width: 100%; /* Default: fluid width */
+}
+
+/* Tablet Layout */
+@media (min-width: 768px) {
+  .container {
+      max-width: 720px;
+  }
+}
+
+/* Desktop Layout */
+@media (min-width: 992px) {
+  .container {
+      max-width: 960px;
+  }
+}
+
+/* Full-width Content */
+.content {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  user-select: none;
+}
+
+/* assets/css/styles.css */
+
+/* Ensure images cover the card without being distorted */
+.card-img-top {
+  width: 100%;
+  height: 200px; /* Adjust based on your design */
+  object-fit: cover; /* Use 'contain' if you prefer no cropping */
+}
+
+/* Optional: Different height for smaller screens */
+@media (max-width: 767.98px) {
+  .card-img-top {
+      height: 150px;
+  }
+}
+
+/* Sidebar Styling */
+.sidebar {
+  height: 100vh; /* Full viewport height */
+  position: fixed; /* Fixed position */
+  top: 0;
+  left: 0;
+  padding-top: 60px; /* Space for fixed navbar */
+  background-color: #f8f9fa; /* Light background */
+  border-right: 1px solid #dee2e6; /* Border on the right */
+  overflow-y: auto; /* Scroll if content overflows */
+  transition: all 0.3s;
+  z-index: 100; /* Ensure it stays above other elements */
+}
+
+/* Sidebar Links */
+.sidebar .nav-link {
+  color: #333;
+  font-weight: 500;
+  padding: 10px 15px;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #e9ecef;
+  color: #007bff;
+  border-radius: 4px;
+}
+
+/* Active Link Styling */
+.sidebar .nav-link.active {
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.sidebar .nav-link.active:hover {
+  background-color: #0056b3;
+  color: #fff;
+}
+
+/* Overlay Styling for Mobile Sidebar */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 250px; /* Width of the sidebar */
+  width: calc(100% - 250px);
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.overlay.show {
+  display: block;
+}
+
+/* Responsive Sidebar */
+@media (max-width: 767.98px) {
+  .sidebar {
+      position: fixed; /* Fixed position for mobile when toggled */
+      z-index: 1000; /* Ensure it appears above other elements */
+      height: 100%;
+      width: 250px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+  }
+
+  .sidebar.show {
+      transform: translateX(0);
+  }
+
+  .overlay {
+      left: 0;
+      width: 100%;
+  }
+}
+
+
+/* assets/css/styles.css */
+
+/* Global Styles */
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Sidebar Styling */
+.sidebar {
+  height: 100vh; /* Full viewport height */
+  position: fixed; /* Fixed position */
+  top: 0;
+  left: 0;
+  padding-top: 60px; /* Space for fixed navbar */
+  background-color: #f8f9fa; /* Light background */
+  border-right: 1px solid #dee2e6; /* Border on the right */
+  overflow-y: auto; /* Scroll if content overflows */
+  transition: all 0.3s;
+  z-index: 100; /* Ensure it stays above other elements */
+}
+
+.sidebar .nav-link {
+  color: #333;
+  font-weight: 500;
+  padding: 10px 15px;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #e9ecef;
+  color: #007bff;
+  border-radius: 4px;
+}
+
+/* Active Link Styling */
+.sidebar .nav-link.active {
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.sidebar .nav-link.active:hover {
+  background-color: #0056b3;
+  color: #fff;
+}
+
+/* Overlay Styling for Mobile Sidebar */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 250px; /* Width of the sidebar */
+  width: calc(100% - 250px);
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.overlay.show {
+  display: block;
+}
+
+/* Responsive Sidebar */
+@media (max-width: 767.98px) {
+  .sidebar {
+      position: fixed; /* Fixed position for mobile when toggled */
+      z-index: 1000; /* Ensure it appears above other elements */
+      height: 100%;
+      width: 250px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+  }
+
+  .sidebar.show {
+      transform: translateX(0);
+  }
+
+  .overlay {
+      left: 0;
+      width: 100%;
+  }
+}
+
+/* Card Image Styling */
+.card-img-top {
+  width: 100%;
+  height: 200px; /* Set a fixed height suitable for your images */
+  object-fit: cover; /* Options: cover, contain */
+}
+
+@media (max-width: 767.98px) {
+  .card-img-top {
+      height: 150px; /* Adjust height for smaller screens */
+  }
+}
+
+/* Traits Badge Styling */
+.trait {
+  margin-right: 5px;
+  margin-bottom: 5px;
+}
+
+/* Pagination Styling */
+.pagination .page-item.active .page-link {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: #fff;
+}
+
+.pagination .page-link {
+  color: #007bff;
+}
+
+.pagination .page-link:hover {
+  color: #0056b3;
+}
+
+/* Footer Social Icons */
+footer .btn-floating {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+footer .btn-floating:hover {
+  background-color: #007bff;
+  color: #fff;
+}
+
+/* Ensure Main Content Adjusts for Fixed Sidebar */
+@media (min-width: 768px) {
+  main.container-fluid {
+      padding-left: 250px; /* Width of the sidebar */
+  }
+}
+
+@media (max-width: 767.98px) {
+  main.container-fluid {
+      padding-left: 0;
+  }
+}
+

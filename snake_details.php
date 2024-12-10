@@ -2,149 +2,103 @@
 // snake_details.php
 
 require_once 'includes/connect.php';
-session_start(); // Start the session to access $_SESSION variables
+require_once 'templates/header.php';
 
-// Get the snake ID from the URL parameter
-$snake_id = intval($_GET['id']); // The ID of the snake should be passed via URL, e.g., snake_details.php?id=1
+// Check if snake ID is provided
+if (isset($_GET['id'])) {
+    $snake_id = intval($_GET['id']);
 
-// Fetch the snake details
-$stmt = $pdo->prepare('
-    SELECT snakes.name, snakes.species, snakes.gender, snakes.price, snakes.availability_status, snakes.description, snakes.image_url, morphs.name AS morph_name
-    FROM snakes
-    JOIN morphs ON snakes.morph_id = morphs.morph_id
-    WHERE snakes.snake_id = :snake_id
-');
-$stmt->execute(['snake_id' => $snake_id]);
-$snake = $stmt->fetch();
+    // Fetch snake details
+    $stmt = $pdo->prepare('
+        SELECT snakes.*, morphs.name AS morph_name
+        FROM snakes
+        JOIN morphs ON snakes.morph_id = morphs.morph_id
+        WHERE snake_id = ?
+    ');
+    $stmt->execute([$snake_id]);
+    $snake = $stmt->fetch();
 
-if (!$snake) {
-    echo "Snake not found!";
-    exit;
-}
+    if ($snake) {
+        // Fetch snake images
+        $stmt = $pdo->prepare('SELECT image_url FROM snake_images WHERE snake_id = ?');
+        $stmt->execute([$snake_id]);
+        $images = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Fetch the traits for this snake
-$stmt = $pdo->prepare('
-    SELECT traits.name, traits.trait_id 
-    FROM snake_traits 
-    JOIN traits ON snake_traits.trait_id = traits.trait_id 
-    WHERE snake_traits.snake_id = :snake_id
-');
-$stmt->execute(['snake_id' => $snake_id]);
-$traits = $stmt->fetchAll();
-
-// Initialize error variable
-$error = '';
-
-// Handle comment submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
-    $comment_text = trim($_POST['comment_text']);
-
-    if (!empty($comment_text)) {
-        $stmt = $pdo->prepare('INSERT INTO comments (snake_id, user_id, comment_text)
-        VALUES (:snake_id, :user_id, :comment_text)');
-
-        $stmt->execute([
-            'snake_id'       => $snake_id,
-            'user_id'        => $_SESSION['user_id'],
-            'comment_text'   => $comment_text,
-        ]);
-
-        // Redirect to avoid form resubmission
-        header('Location: snake_details.php?id=' . $snake_id);
-        exit;
+        // Fetch traits associated with the snake
+        $stmt = $pdo->prepare('
+            SELECT traits.name
+            FROM traits
+            JOIN snake_traits ON traits.trait_id = snake_traits.trait_id
+            WHERE snake_traits.snake_id = ?
+        ');
+        $stmt->execute([$snake_id]);
+        $traits = $stmt->fetchAll(PDO::FETCH_COLUMN);
     } else {
-        $error = 'Comment cannot be empty.';
+        echo '<div class="container mt-5"><div class="alert alert-danger">Snake not found.</div></div>';
+        include 'templates/footer.php';
+        exit();
     }
+} else {
+    echo '<div class="container mt-5"><div class="alert alert-danger">Invalid snake ID.</div></div>';
+    include 'templates/footer.php';
+    exit();
 }
-
-// Fetch comments for this snake
-$stmt = $pdo->prepare('
-    SELECT comments.*, users.username
-    FROM comments
-    JOIN users ON comments.user_id = users.user_id
-    WHERE comments.snake_id = :snake_id
-    ORDER BY comments.date_posted DESC
-');
-$stmt->execute(['snake_id' => $snake_id]);
-$comments = $stmt->fetchAll();
-
-
 ?>
-<?php include 'templates/header.php'; ?>
-
 <div class="container mt-5">
-    <div class="row">
-        <div class="col-md-6">
-            <?php if ($snake['image_url']): ?>
-                <img src="<?php echo htmlspecialchars($snake['image_url']); ?>" alt="<?php echo htmlspecialchars($snake['name']); ?>" class="img-fluid">
-            <?php else: ?>
-                <img src="path/to/default/image.jpg" alt="Default Image" class="img-fluid">
+    <h2><?php echo htmlspecialchars($snake['name']); ?></h2>
+    <!-- Snake Image Carousel -->
+    <?php if (!empty($images)): ?>
+        <div id="snakeCarousel" class="carousel slide mb-4" data-ride="carousel">
+            <div class="carousel-inner">
+                <?php foreach ($images as $index => $image_url): ?>
+                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                        <img src="<?php echo htmlspecialchars($image_url); ?>" class="d-block w-100" alt="Snake Image">
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <!-- Controls -->
+            <?php if (count($images) > 1): ?>
+                <a class="carousel-control-prev" href="#snakeCarousel" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Previous</span>
+                </a>
+                <a class="carousel-control-next" href="#snakeCarousel" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Next</span>
+                </a>
             <?php endif; ?>
         </div>
-        <div class="col-md-6">
-            <h1><?php echo htmlspecialchars($snake['name']); ?></h1>
+    <?php else: ?>
+        <!-- Display a default image if no images are available -->
+        <img src="assets/images/default_snake.jpg" class="img-fluid mb-4" alt="Default Snake Image">
+    <?php endif; ?>
+    <!-- Snake Details -->
+    <div class="row">
+        <div class="col-md-8">
+            <h4>Details</h4>
             <p><strong>Species:</strong> <?php echo htmlspecialchars($snake['species']); ?></p>
-            <p><strong>Gender:</strong> <?php echo htmlspecialchars($snake['gender']); ?></p>
+            <p><strong>Morph:</strong> <?php echo htmlspecialchars($snake['morph_name']); ?></p>
+            <p><strong>Gender:</strong> <?php echo ucfirst(htmlspecialchars($snake['gender'])); ?></p>
             <p><strong>Price:</strong> $<?php echo number_format($snake['price'], 2); ?></p>
-            <p><strong>Availability:</strong> <?php echo htmlspecialchars($snake['availability_status']); ?></p>
-            <p><?php echo nl2br(htmlspecialchars($snake['description'])); ?></p>
-
-            <!-- Display the traits dynamically -->
-            <div>
-                <strong>Traits:</strong>
-                <div class="traits">
+            <p><strong>Availability:</strong> <?php echo ucfirst(htmlspecialchars($snake['availability_status'])); ?></p>
+            <?php if (!empty($snake['description'])): ?>
+                <p><strong>Description:</strong> <?php echo nl2br(htmlspecialchars($snake['description'])); ?></p>
+            <?php endif; ?>
+            <?php if (!empty($traits)): ?>
+                <p><strong>Traits:</strong>
                     <?php foreach ($traits as $trait): ?>
-                        <span class="trait badge badge-info" data-trait-id="<?php echo $trait['trait_id']; ?>">
-                            <?php echo htmlspecialchars($trait['name']); ?>
-                        </span>
+                        <span class="badge badge-info"><?php echo htmlspecialchars($trait); ?></span>
                     <?php endforeach; ?>
-                </div>
-            </div>
-
-            <!-- Trait Description Modal or Div -->
-            <div id="trait-description" class="hidden">
-                <p id="trait-text"></p>
-            </div>
+                </p>
+            <?php endif; ?>
+        </div>
+        <!-- Contact Form or Purchase Button -->
+        <div class="col-md-4">
+            <!-- Placeholder for contact or purchase functionality -->
+            <h4>Interested?</h4>
+            <p>Contact us for more information or to purchase this snake.</p>
+            <a href="contact.php?snake_id=<?php echo $snake_id; ?>" class="btn btn-primary">Contact Us</a>
         </div>
     </div>
 </div>
-
-<!-- Comments Section -->
-<div class="container mt-5">
-    <h3>Comments</h3>
-    <?php if (isset($_SESSION['user_id'])): ?>
-        <form action="snake_details.php?id=<?php echo $snake_id; ?>" method="POST">
-            <?php if (!empty($error)): ?>
-                <div class="alert alert-danger">
-                    <?php echo htmlspecialchars($error); ?>
-                </div>
-            <?php endif; ?>
-            <div class="form-group">
-                <label for="comment_text">Add a Comment:</label>
-                <textarea name="comment_text" class="form-control" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary">Submit Comment</button>
-        </form>
-    <?php else: ?>
-        <p>Please <a href="login.php">login</a> to add a comment.</p>
-    <?php endif; ?>
-
-    <!-- Display comments -->
-    <?php if (!empty($comments)): ?>
-        <?php foreach ($comments as $comment): ?>
-            <div class="comment mt-4">
-                <p><strong><?php echo htmlspecialchars($comment['username']); ?></strong> on <?php echo date('F j, Y, g:i a', strtotime($comment['date_posted'])); ?></p>
-                <p><?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?></p>
-            </div>
-        <?php endforeach; ?>
-    <?php else: ?>
-        <p>No comments yet.</p>
-    <?php endif; ?>
-</div>
-
 <?php include 'templates/footer.php'; ?>
-
-<!-- JavaScript to handle trait clicks -->
-<script>
-// Your JavaScript code to handle trait clicks
-</script>

@@ -40,6 +40,14 @@ $stmt = $pdo->prepare('
 $stmt->execute(['snake_id' => $snake_id]);
 $selected_traits = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
+// Fetch existing images for this snake
+$stmt = $pdo->prepare('
+    SELECT image_id, image_url FROM snake_images
+    WHERE snake_id = :snake_id
+');
+$stmt->execute(['snake_id' => $snake_id]);
+$images = $stmt->fetchAll();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Collect and sanitize input
     $name = trim($_POST['name'] ?? '');
@@ -50,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $availability_status = $_POST['availability_status'] ?? '';
     $description = trim($_POST['description'] ?? '');
     $selected_traits = $_POST['traits'] ?? [];
-    
+
     // Validation
     if (empty($name)) {
         $errors[] = 'Name is required.';
@@ -70,54 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($availability_status)) {
         $errors[] = 'Availability status is required.';
     }
-    
-    // Handle image upload if a new image is provided
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        // Validate and process the uploaded file
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $file_type = mime_content_type($_FILES['image']['tmp_name']);
-        if (in_array($file_type, $allowed_types)) {
-            $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $new_filename = uniqid('snake_', true) . '.' . $file_extension;
-    
-            $upload_dir = '../uploads/';
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0755, true);
-            }
-            $destination = $upload_dir . $new_filename;
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $destination)) {
-                $image_url = 'uploads/' . $new_filename;
-                // Delete old image if exists
-                if ($snake['image_url'] && file_exists('../' . $snake['image_url'])) {
-                    unlink('../' . $snake['image_url']);
-                }
-            } else {
-                $errors[] = 'Failed to move uploaded file.';
-            }
-        } else {
-            $errors[] = 'Invalid file type. Only JPEG, PNG, and GIF are allowed.';
-        }
-    } else {
-        // Keep the existing image URL if no new image is uploaded
-        $image_url = $snake['image_url'];
-    }
 
-    if (empty($name)) {
-        $errors[] = 'Name is required.';
-    }
-    if (empty($price) || !is_numeric($price)) {
-        $errors[] = 'Valid price is required.';
-    }
-
-    $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-    if (in_array($file_type, $allowed_types)) {
-
-}
-       
     if (empty($errors)) {
         try {
             $pdo->beginTransaction();
-    
+
             // Update snakes table
             $stmt = $pdo->prepare('
                 UPDATE snakes SET
@@ -127,8 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     gender = :gender,
                     price = :price,
                     availability_status = :availability_status,
-                    description = :description,
-                    image_url = :image_url
+                    description = :description
                 WHERE snake_id = :snake_id
             ');
             $stmt->execute([
@@ -139,15 +103,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'price'               => $price,
                 'availability_status' => $availability_status,
                 'description'         => $description,
-                'image_url'           => $image_url,
                 'snake_id'            => $snake_id
             ]);
-    
+
+            // Handle image removals
+            if (isset($_POST['remove_images'])) {
+                $remove_image_ids = $_POST['remove_images'];
+
+                // Prepare statements
+                $stmtGetImage = $pdo->prepare('SELECT image_url FROM snake_images WHERE image_id = :image_id AND snake_id = :snake_id');
+                $stmtDeleteImage = $pdo->prepare('DELETE FROM snake_images WHERE image_id = :image_id AND snake_id = :snake_id');
+
+                foreach ($remove_image_ids as $image_id) {
+                    // Fetch the image URL
+                    $stmtGetImage->execute(['image_id' => $image_id, 'snake_id' => $snake_id]);
+                    $image = $stmtGetImage->fetch();
+
+                    if ($image) {
+                        // Delete the image file
+                        if (file_exists('../' . $image['image_url'])) {
+                            unlink('../' . $image['image_url']);
+                        }
+                        // Delete the image record from the database
+                        $stmtDeleteImage->execute(['image_id' => $image_id, 'snake_id' => $snake_id]);
+                    }
+                }
+            }
+
+            // Handle new image uploads
+            if (isset($_FILES['images']) && $_FILES['images']['error'][0] !== UPLOAD_ERR_NO_FILE) {
+                $uploadedFiles = $_FILES['images'];
+                $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+                $upload_dir = '../uploads/snakes/';
+
+                // Create the directory if it doesn't exist
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                // Loop through each uploaded file
+                for ($i = 0; $i < count($uploadedFiles['name']); $i++) {
+                    $tmp_name = $uploadedFiles['tmp_name'][$i];
+                    $file_name = basename($uploadedFiles['name'][$i]);
+                    $file_type = mime_content_type($tmp_name);
+                    $file_size = $uploadedFiles['size'][$i];
+
+                    // Validate file type and size
+                    if (in_array($file_type, $allowed_types)) {
+                        if ($file_size <= 2 * 1024 * 1024) { // Limit file size to 2MB
+                            $file_extension = pathinfo($file_name, PATHINFO_EXTENSION);
+                            $new_filename = uniqid('snake_', true) . '.' . $file_extension;
+                            $destination = $upload_dir . $new_filename;
+
+                            if (move_uploaded_file($tmp_name, $destination)) {
+                                // Insert image URL into snake_images table
+                                $stmtInsertImage = $pdo->prepare('INSERT INTO snake_images (snake_id, image_url) VALUES (:snake_id, :image_url)');
+                                $stmtInsertImage->execute([
+                                    'snake_id' => $snake_id,
+                                    'image_url' => 'uploads/snakes/' . $new_filename
+                                ]);
+                            } else {
+                                $errors[] = 'Failed to upload file: ' . htmlspecialchars($file_name);
+                            }
+                        } else {
+                            $errors[] = 'File too large: ' . htmlspecialchars($file_name);
+                        }
+                    } else {
+                        $errors[] = 'Invalid file type for file: ' . htmlspecialchars($file_name);
+                    }
+                }
+            }
+
             // Update snake_traits table
             // First, delete existing traits
             $stmt = $pdo->prepare('DELETE FROM snake_traits WHERE snake_id = :snake_id');
             $stmt->execute(['snake_id' => $snake_id]);
-    
+
             // Then, insert new traits
             if (!empty($selected_traits)) {
                 $stmt = $pdo->prepare('INSERT INTO snake_traits (snake_id, trait_id) VALUES (:snake_id, :trait_id)');
@@ -158,9 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
             }
-    
+
             $pdo->commit();
-    
+
             $_SESSION['success'] = 'Snake updated successfully.';
             header('Location: dashboard.php');
             exit;
@@ -178,15 +209,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = $snake['price'];
     $availability_status = $snake['availability_status'];
     $description = $snake['description'];
-    $image_url = $snake['image_url'];
-}
-
-if (isset($_POST['remove_image']) && $_POST['remove_image'] == 'on') {
-    // Delete old image if exists
-    if ($snake['image_url'] && file_exists('../' . $snake['image_url'])) {
-        unlink('../' . $snake['image_url']);
-    }
-    $image_url = null; // Set image URL to null in the database
 }
 
 include '../templates/admin_header.php'; ?>
@@ -252,19 +274,27 @@ include '../templates/admin_header.php'; ?>
             <label for="description">Description:</label>
             <textarea name="description" class="form-control"><?php echo htmlspecialchars($description); ?></textarea>
         </div>
-        <!-- Image -->
+        <!-- Existing Images -->
         <div class="form-group">
-    <?php if ($snake['image_url']): ?>
-        <img src="../<?php echo htmlspecialchars($snake['image_url']); ?>" alt="Current Image" style="max-width: 200px;">
-        <div class="form-check">
-            <input type="checkbox" name="remove_image" class="form-check-input" id="remove_image">
-            <label for="remove_image" class="form-check-label">Remove current image</label>
+            <label>Existing Images:</label>
+            <div class="row">
+                <?php foreach ($images as $image): ?>
+                    <div class="col-md-3">
+                        <img src="../<?php echo htmlspecialchars($image['image_url']); ?>" alt="Snake Image" style="max-width: 100%;">
+                        <div class="form-check">
+                            <input type="checkbox" name="remove_images[]" value="<?php echo $image['image_id']; ?>" class="form-check-input" id="remove_image_<?php echo $image['image_id']; ?>">
+                            <label for="remove_image_<?php echo $image['image_id']; ?>" class="form-check-label">Remove</label>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
-    <?php endif; ?>
-    <label for="image">Upload New Image:</label>
-    <input type="file" name="image" class="form-control-file">
-</div>
-        
+        <!-- Upload New Images -->
+        <div class="form-group">
+            <label for="images">Upload New Images:</label>
+            <input type="file" class="form-control-file" id="images" name="images[]" multiple>
+            <small>Allowed file types: JPEG, PNG, GIF. Max size: 2MB per image.</small>
+        </div>
         <!-- Traits selection -->
         <div class="form-group">
             <label for="traits">Traits:</label>
@@ -283,5 +313,3 @@ include '../templates/admin_header.php'; ?>
 </div>
 
 <?php include '../templates/admin_footer.php'; ?>
-
-

@@ -16,7 +16,6 @@ $price = '';
 $availability_status = '';
 $description = '';
 $selected_traits = [];
-$image_url = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Sanitize
@@ -49,40 +48,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Availability status is required.';
     }
 
-    if (empty($name)) {
-        $errors[] = 'Name is required.';
-    }
-    if (empty($price) || !is_numeric($price)) {
-        $errors[] = 'Valid price is required.';
-    }
-    
+    // Handle multiple image uploads
+    $uploadedFiles = $_FILES['images'];
 
-    // Handle image upload
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        // Validate and process the uploaded file
+    if (isset($uploadedFiles) && $uploadedFiles['error'][0] !== UPLOAD_ERR_NO_FILE) {
+        // Validate and process the uploaded files
         $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $file_type = mime_content_type($_FILES['image']['tmp_name']);
-        if (in_array($file_type, $allowed_types)) {
-            $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $new_filename = uniqid('snake_', true) . '.' . $file_extension;
+        $upload_dir = '../uploads/snakes/';
 
-            $upload_dir = '../uploads/';
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0755, true);
-            }
-            $destination = $upload_dir . $new_filename;
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $destination)) {
-                $image_url = 'uploads/' . $new_filename;
+        // Create the directory if it doesn't exist
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+
+        $image_urls = [];
+
+        // Loop through each uploaded file
+        for ($i = 0; $i < count($uploadedFiles['name']); $i++) {
+            $tmp_name = $uploadedFiles['tmp_name'][$i];
+            $file_name = basename($uploadedFiles['name'][$i]);
+            $file_type = mime_content_type($tmp_name);
+            $file_size = $uploadedFiles['size'][$i];
+
+            // Validate file type and size
+            if (in_array($file_type, $allowed_types)) {
+                if ($file_size <= 2 * 1024 * 1024) { // Limit file size to 2MB
+                    $file_extension = pathinfo($file_name, PATHINFO_EXTENSION);
+                    $new_filename = uniqid('snake_', true) . '.' . $file_extension;
+                    $destination = $upload_dir . $new_filename;
+
+                    if (move_uploaded_file($tmp_name, $destination)) {
+                        $image_urls[] = 'uploads/snakes/' . $new_filename;
+                    } else {
+                        $errors[] = 'Failed to upload file: ' . htmlspecialchars($file_name);
+                    }
+                } else {
+                    $errors[] = 'File too large: ' . htmlspecialchars($file_name);
+                }
             } else {
-                $errors[] = 'Failed to move uploaded file.';
-                $image_url = '';
+                $errors[] = 'Invalid file type for file: ' . htmlspecialchars($file_name);
             }
-        } else {
-            $errors[] = 'Invalid file type. Only JPEG, PNG, and GIF are allowed.';
-            $image_url = '';
         }
     } else {
-        $image_url = ''; // Or set to a default image path
+        $errors[] = 'At least one image is required.';
     }
 
     if (empty($errors)) {
@@ -91,8 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Insert into snakes table
             $stmt = $pdo->prepare('
-                INSERT INTO snakes (name, species, morph_id, gender, price, availability_status, description, image_url)
-                VALUES (:name, :species, :morph_id, :gender, :price, :availability_status, :description, :image_url)
+                INSERT INTO snakes (name, species, morph_id, gender, price, availability_status, description)
+                VALUES (:name, :species, :morph_id, :gender, :price, :availability_status, :description)
             ');
             $stmt->execute([
                 'name'                => $name,
@@ -101,11 +109,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'gender'              => $gender,
                 'price'               => $price,
                 'availability_status' => $availability_status,
-                'description'         => $description,
-                'image_url'           => $image_url
+                'description'         => $description
             ]);
 
             $snake_id = $pdo->lastInsertId();
+
+            // Insert images into snake_images table
+            if (!empty($image_urls)) {
+                $stmt = $pdo->prepare('INSERT INTO snake_images (snake_id, image_url) VALUES (:snake_id, :image_url)');
+                foreach ($image_urls as $image_url) {
+                    $stmt->execute([
+                        'snake_id' => $snake_id,
+                        'image_url' => $image_url
+                    ]);
+                }
+            }
 
             // Insert into snake_traits table
             if (!empty($selected_traits)) {
@@ -164,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </select>
         </div>
         <!-- Gender -->
-        <div class="form-group">
+        <div="form-group">
             <label for="gender">Gender<span class="text-danger">*</span>:</label>
             <select name="gender" class="form-control" required>
                 <option value="">Select Gender</option>
@@ -192,10 +210,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label for="description">Description:</label>
             <textarea name="description" class="form-control"><?php echo htmlspecialchars($description); ?></textarea>
         </div>
-        <!-- Image -->
+        <!-- Images -->
         <div class="form-group">
-            <label for="image">Image:</label>
-            <input type="file" name="image" class="form-control-file">
+            <label for="images">Snake Images<span class="text-danger">*</span>:</label>
+            <input type="file" class="form-control-file" id="images" name="images[]" multiple required>
+            <small>Allowed file types: JPEG, PNG, GIF. Max size: 2MB per image.</small>
         </div>
         <!-- Traits selection -->
         <div class="form-group">
@@ -210,8 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <small>Hold Ctrl (Windows) or Command (Mac) to select multiple traits.</small>
         </div>
         <!-- Submit button -->
-        <button type="submit" class="btn btn-success">Add Snake</button>
+        <button type="submit" class="btn btn-primary">Add Snake</button>
     </form>
 </div>
 <?php include '../templates/admin_footer.php'; ?>
-
